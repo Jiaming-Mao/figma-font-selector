@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: Inter, sans-serif;
+      padding: 20px;
+    }
+    select {
+      width: 100%;
+      padding: 8px;
+      margin: 8px 0;
+      border-radius: 4px;
+      border: 1px solid #e5e5e5;
+    }
+    button {
+      background: #18A0FB;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-right: 8px;
+    }
+    button:hover {
+      background: #0D8DE3;
+    }
+  </style>
+</head>
+<body>
+  <h2>Font Selector</h2>
+  <select id="fontSelect">
+    <option value="">Loading fonts...</option>
+  </select>
+  <button id="apply">Apply Font</button>
+  <button id="cancel">Cancel</button>
+
+  <script>
+    // Request available fonts from the plugin
+    parent.postMessage({ pluginMessage: { type: 'get-fonts' } }, '*');
+
+    // Handle font selection
+    document.getElementById('apply').onclick = () => {
+      const fontSelect = document.getElementById('fontSelect');
+      const selectedFont = fontSelect.value;
+      parent.postMessage({ 
+        pluginMessage: { 
+          type: 'apply-font', 
+          font: selectedFont
+        } 
+      }, '*');
+    }
+
+    document.getElementById('cancel').onclick = () => {
+      parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*')
+    }
+
+    // Listen for messages from the plugin
+    window.onmessage = (event) => {
+      const message = event.data.pluginMessage;
+      
+      if (message.type === 'fonts-loaded') {
+        const fontSelect = document.getElementById('fontSelect');
+        fontSelect.innerHTML = ''; // Clear loading message
+        
+        // Create a Set to store unique font families
+        const uniqueFamilies = new Set();
+        message.fonts.forEach(font => {
+          if (
+            font.fontName.family.startsWith('.') ||
+            font.fontName.family.includes('?') ||
+            !font.fontName.family.trim()
+          ) return; // Skip hidden/system/corrupted fonts
+          uniqueFamilies.add(font.fontName.family);
+        });
+
+        // Add unique families to dropdown
+        Array.from(uniqueFamilies).sort().forEach(family => {
+          const option = document.createElement('option');
+          option.value = family;
+          option.text = family;
+          fontSelect.appendChild(option);
+        });
+      }
+    }
+  </script>
+</body>
+</html>
