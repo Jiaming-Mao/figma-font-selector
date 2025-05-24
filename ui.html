@@ -248,6 +248,66 @@
       color: #333333;
       margin: 0 0 4px 0;
     }
+
+    /* Text style specific styles */
+    .autocomplete-list .style-item {
+      padding: 10px 12px;
+    }
+    
+    .autocomplete-list .style-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: #333333;
+      margin-bottom: 2px;
+    }
+    
+    .autocomplete-list .style-details {
+      font-size: 10px;
+      color: #666666;
+      line-height: 1.3;
+    }
+    
+    .autocomplete-list .font-family-item {
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #333333;
+    }
+    
+    .autocomplete-list .divider {
+      border-top: 1px solid #E5E5E5;
+      margin: 4px 0;
+      padding: 0;
+      height: 1px;
+      background: none;
+      cursor: default;
+    }
+    
+    .autocomplete-list .section-title {
+      padding: 8px 12px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #666666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #F8F8F8;
+      cursor: default;
+    }
+
+    .autocomplete-list .style-item.active,
+    .autocomplete-list .style-item:hover {
+      background: #F3F8FC;
+    }
+    
+    .autocomplete-list .font-family-item.active,
+    .autocomplete-list .font-family-item:hover {
+      background: #F3F8FC;
+      color: #18A0FB;
+    }
+    
+    .autocomplete-list .section-title:hover,
+    .autocomplete-list .divider:hover {
+      background: inherit;
+    }
   </style>
 </head>
 <body>
@@ -258,9 +318,9 @@
     </ul>
   </div>
 
-  <label for="fontAutocomplete" class="dropdown-label">Target Font</label>
+  <label for="fontAutocomplete" class="dropdown-label">Target Font or Text Style</label>
   <div class="autocomplete-container">
-    <input id="fontAutocomplete" type="text" placeholder="Search fonts..." autocomplete="off" class="autocomplete-input" />
+    <input id="fontAutocomplete" type="text" placeholder="Search fonts and styles..." autocomplete="off" class="autocomplete-input" />
     <ul id="autocompleteList" class="autocomplete-list" tabindex="-1" hidden></ul>
   </div>
 
@@ -270,6 +330,8 @@
   <script>
     // Request available fonts from the plugin
     parent.postMessage({ pluginMessage: { type: 'get-fonts' } }, '*');
+    console.log('Requesting text styles...');
+    parent.postMessage({ pluginMessage: { type: 'get-text-styles' } }, '*');
     parent.postMessage({ pluginMessage: { type: 'get-selection-fonts' } }, '*');
 
     const applyButton = document.getElementById('apply');
@@ -277,39 +339,160 @@
     const fontAutocomplete = document.getElementById('fontAutocomplete');
     const autocompleteList = document.getElementById('autocompleteList');
     let allFontFamilies = [];
+    let localTextStyles = [];
     let selectedFont = '';
+    let selectedStyleId = '';
+    let selectedStyleType = 'family'; // 'family' or 'style'
 
     // Autocomplete logic
     function showAutocompleteList(filtered) {
+      console.log('showAutocompleteList called with filtered:', filtered);
+      console.log('localTextStyles.length:', localTextStyles.length);
+      
       autocompleteList.innerHTML = '';
-      if (filtered.length === 0) {
-        autocompleteList.hidden = true;
-        return;
+      
+      const searchValue = fontAutocomplete.value.trim().toLowerCase();
+      console.log('searchValue:', searchValue);
+      let hasItems = false;
+      
+      // Filter and show local text styles first
+      if (localTextStyles.length > 0) {
+        console.log('Processing localTextStyles:', localTextStyles);
+        
+        const filteredStyles = localTextStyles.filter(style => {
+          console.log('Filtering style:', style);
+          if (!style || !style.name) {
+            console.log('Style missing name:', style);
+            return false;
+          }
+          
+          const styleName = style.name.toLowerCase();
+          const matchesName = styleName.includes(searchValue);
+          
+          // Safely check fontName.family
+          let matchesFont = false;
+          if (style.fontName && style.fontName.family) {
+            matchesFont = style.fontName.family.toLowerCase().includes(searchValue);
+          }
+          
+          const result = matchesName || matchesFont;
+          console.log(`Style "${style.name}" matches: ${result} (name: ${matchesName}, font: ${matchesFont})`);
+          return result;
+        });
+        
+        console.log('Filtered styles:', filteredStyles);
+        
+        if (filteredStyles.length > 0) {
+          // Add local styles section
+          const localTitle = document.createElement('li');
+          localTitle.className = 'section-title';
+          localTitle.textContent = 'Local Text Styles';
+          autocompleteList.appendChild(localTitle);
+          
+          filteredStyles.forEach((style) => {
+            const li = document.createElement('li');
+            li.className = 'style-item';
+            li.tabIndex = 0;
+            
+            const styleName = document.createElement('div');
+            styleName.className = 'style-name';
+            styleName.textContent = style.name;
+            
+            const styleDetails = document.createElement('div');
+            styleDetails.className = 'style-details';
+            
+            // Safely build the details string
+            let detailsText = '';
+            if (style.fontName && style.fontName.family) {
+              detailsText = style.fontName.family;
+              if (style.fontName.style) {
+                detailsText += ` ${style.fontName.style}`;
+              }
+            }
+            if (style.fontSize) {
+              if (detailsText) detailsText += ' • ';
+              detailsText += `${style.fontSize}px`;
+            }
+            if (!detailsText) detailsText = 'Text Style';
+            
+            styleDetails.textContent = detailsText;
+            
+            li.appendChild(styleName);
+            li.appendChild(styleDetails);
+            
+            li.onclick = () => {
+              fontAutocomplete.value = style.name;
+              selectedFont = style.name;
+              selectedStyleId = style.id;
+              selectedStyleType = 'style';
+              autocompleteList.hidden = true;
+            };
+            li.onmousedown = (e) => e.preventDefault();
+            autocompleteList.appendChild(li);
+            hasItems = true;
+          });
+          
+          // Add divider if we have both styles and fonts
+          if (filtered.length > 0) {
+            const divider = document.createElement('li');
+            divider.className = 'divider';
+            autocompleteList.appendChild(divider);
+          }
+        }
       }
-      filtered.forEach((family, idx) => {
-        const li = document.createElement('li');
-        li.textContent = family;
-        li.tabIndex = 0;
-        li.onclick = () => {
-          fontAutocomplete.value = family;
-          selectedFont = family;
-          autocompleteList.hidden = true;
-        };
-        li.onmousedown = (e) => e.preventDefault(); // Prevent input blur
-        autocompleteList.appendChild(li);
-      });
-      autocompleteList.hidden = false;
+      
+      // Show font families
+      if (filtered.length > 0) {
+        if (hasItems) {
+          // Add font families section title
+          const fontTitle = document.createElement('li');
+          fontTitle.className = 'section-title';
+          fontTitle.textContent = 'Font Families';
+          autocompleteList.appendChild(fontTitle);
+        }
+        
+        filtered.forEach((family) => {
+          const li = document.createElement('li');
+          li.className = 'font-family-item';
+          li.textContent = family;
+          li.tabIndex = 0;
+          li.onclick = () => {
+            fontAutocomplete.value = family;
+            selectedFont = family;
+            selectedStyleId = '';
+            selectedStyleType = 'family';
+            autocompleteList.hidden = true;
+          };
+          li.onmousedown = (e) => e.preventDefault();
+          autocompleteList.appendChild(li);
+          hasItems = true;
+        });
+      }
+      
+      autocompleteList.hidden = !hasItems;
     }
 
     fontAutocomplete.addEventListener('input', (e) => {
-      const value = fontAutocomplete.value.trim().toLowerCase();
-      const filtered = allFontFamilies.filter(f => f.toLowerCase().includes(value));
-      showAutocompleteList(filtered);
-      selectedFont = fontAutocomplete.value;
+      try {
+        const value = fontAutocomplete.value.trim().toLowerCase();
+        const filtered = allFontFamilies.filter(f => f.toLowerCase().includes(value));
+        showAutocompleteList(filtered);
+        selectedFont = fontAutocomplete.value;
+        selectedStyleId = '';
+        selectedStyleType = 'family';
+      } catch (error) {
+        console.error('Error in input handler:', error);
+        autocompleteList.hidden = true;
+      }
     });
 
     fontAutocomplete.addEventListener('focus', () => {
-      showAutocompleteList(allFontFamilies);
+      try {
+        showAutocompleteList(allFontFamilies);
+      } catch (error) {
+        console.error('Error in focus handler:', error);
+        autocompleteList.hidden = true;
+      }
     });
 
     fontAutocomplete.addEventListener('blur', () => {
@@ -317,9 +500,12 @@
     });
 
     fontAutocomplete.addEventListener('keydown', (e) => {
-      const items = Array.from(autocompleteList.children);
+      const items = Array.from(autocompleteList.children).filter(item => 
+        !item.classList.contains('section-title') && !item.classList.contains('divider')
+      );
       const active = autocompleteList.querySelector('li.active');
       let idx = items.indexOf(active);
+      
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         if (idx < items.length - 1) idx++;
@@ -334,9 +520,7 @@
         if (items[idx]) items[idx].classList.add('active');
       } else if (e.key === 'Enter') {
         if (active) {
-          fontAutocomplete.value = active.textContent;
-          selectedFont = active.textContent;
-          autocompleteList.hidden = true;
+          active.click();
         }
       }
     });
@@ -346,23 +530,44 @@
       const checkedFonts = Array.from(document.querySelectorAll('#currentFonts input[type="checkbox"]:checked'))
         .map(checkbox => checkbox.value);
       const fontToApply = selectedFont || fontAutocomplete.value;
-      if (!fontToApply || !allFontFamilies.includes(fontToApply)) {
-        errorDiv.textContent = 'Please select a font to apply.';
+      
+      if (!fontToApply) {
+        errorDiv.textContent = 'Please select a font or text style to apply.';
         errorDiv.classList.add('visible');
         return;
       }
-      if (checkedFonts.length === 0) {
-        errorDiv.textContent = 'Please select at least one font to replace.';
-        errorDiv.classList.add('visible');
-        return;
+      
+      if (selectedStyleType === 'style') {
+        // Applying a text style - no need to check target fonts
+        if (!selectedStyleId) {
+          errorDiv.textContent = 'Please select a valid text style.';
+          errorDiv.classList.add('visible');
+          return;
+        }
+      } else {
+        // Applying a font family - need target fonts
+        if (!allFontFamilies.includes(fontToApply)) {
+          errorDiv.textContent = 'Please select a valid font family.';
+          errorDiv.classList.add('visible');
+          return;
+        }
+        if (checkedFonts.length === 0) {
+          errorDiv.textContent = 'Please select at least one font to replace.';
+          errorDiv.classList.add('visible');
+          return;
+        }
       }
+      
       errorDiv.classList.remove('visible');
       document.body.classList.add('loading');
+      
       parent.postMessage({ 
         pluginMessage: { 
           type: 'apply-font', 
           font: fontToApply,
-          targetFonts: checkedFonts
+          targetFonts: checkedFonts,
+          styleId: selectedStyleId,
+          styleType: selectedStyleType
         } 
       }, '*');
     }
@@ -385,6 +590,26 @@
         allFontFamilies = Array.from(uniqueFamilies).sort();
         // Re-enable UI
         document.body.classList.remove('loading');
+      }
+
+      if (message.type === 'text-styles-loaded') {
+        console.log('Received text-styles-loaded message:', message);
+        localTextStyles = message.styles || [];
+        console.log('Loaded text styles:', localTextStyles);
+        console.log('First style structure:', localTextStyles[0]);
+        console.log('localTextStyles.length:', localTextStyles.length);
+        
+        // Debug: show all properties of the first style
+        if (localTextStyles.length > 0) {
+          const firstStyle = localTextStyles[0];
+          console.log('First style properties:');
+          console.log('- id:', firstStyle.id);
+          console.log('- name:', firstStyle.name);
+          console.log('- fontName:', firstStyle.fontName);
+          console.log('- fontSize:', firstStyle.fontSize);
+          console.log('- type:', firstStyle.type);
+          console.log('All properties:', Object.keys(firstStyle));
+        }
       }
 
       if (message.type === 'selection-fonts') {
