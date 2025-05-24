@@ -1,15 +1,30 @@
 # Figma Font Selector Plugin
 
-A Figma plugin that provides a simple interface to select and apply fonts to text layers while preserving font styles when possible.
+A Figma plugin that provides a powerful interface to select and apply fonts to text layers while preserving font styles and handling mixed font cases.
 
 ## Features
 
 - Shows a dropdown of all available fonts in your Figma document
+- Displays current fonts used in selected text layers
+- Allows selective font replacement by choosing which fonts to replace
 - Preserves font styles when switching fonts (e.g., Bold stays Bold if available)
-- Falls back to Regular style if the current style isn't available
-- Handles mixed font styles within text layers
-- Gracefully handles system fonts and missing fonts
+- Handles complex text layers with multiple font families
+- Robust error handling and font loading
 - Clean, modern UI that matches Figma's design system
+
+## Key Capabilities
+
+- **Mixed Font Support**: Handles text layers with multiple font families (2+ fonts)
+- **Style Preservation**: Maintains font styles (Bold, Italic, etc.) when possible
+- **Selective Replacement**: Choose which fonts to replace in mixed font text
+- **Smart Fallbacks**: 
+  - Tries to match the exact style first
+  - Falls back to Regular if exact style isn't available
+  - Uses first available style as last resort
+- **Robust Font Loading**: 
+  - Loads all required fonts upfront
+  - Handles font loading errors gracefully
+  - Retries failed font applications
 
 ## Installation
 
@@ -21,16 +36,10 @@ A Figma plugin that provides a simple interface to select and apply fonts to tex
 
 1. Select one or more text layers in your Figma document
 2. Open the Font Selector plugin
-3. Choose a font from the dropdown
-4. Click "Apply Font" to apply the selected font to your text layers
-
-### Font Handling
-
-The plugin handles various font scenarios:
-- Single font text layers
-- Text layers with mixed styles (e.g., "Arial Regular" and "Arial Bold")
-- System fonts (automatically filtered)
-- Missing or corrupted fonts (gracefully handled)
+3. The plugin will show all fonts currently used in the selected layers
+4. Choose which fonts you want to replace by checking/unchecking them
+5. Select a new font from the dropdown
+6. Click "Apply Font" to apply the selected font to your text layers
 
 ## Development
 
@@ -57,6 +66,17 @@ This plugin is built with TypeScript and uses the Figma Plugin API.
 
 - `npm run build` - Build the plugin
 - `npm run watch` - Watch for changes and rebuild automatically
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Fix ESLint issues automatically
+
+## Technical Details
+
+The plugin uses several advanced Figma API features:
+- `getStyledTextSegments` for precise font range detection
+- `loadFontAsync` for reliable font loading
+- `setRangeFontName` for applying fonts to specific text ranges
+- Parallel font loading with `Promise.all`
+- Robust error handling and fallback mechanisms
 
 ## License
 
