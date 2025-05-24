@@ -153,9 +153,20 @@
     }
 
     /* Loading state styles */
-    .loading {
-      opacity: 0.5;
-      pointer-events: none;
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2.5px solid #C1C6CE;
+      border-top: 2.5px solid #18A0FB;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
 
     /* Error state styles */
@@ -605,13 +616,19 @@
         }
       }
 
+      if (message.type === 'selection-fonts-loading') {
+        const currentFontsList = document.getElementById('currentFonts');
+        currentFontsList.innerHTML = `<li class="no-selection"><span class="spinner"></span>Loading fonts...</li>`;
+        return;
+      }
+
       if (message.type === 'selection-fonts') {
         const currentFontsList = document.getElementById('currentFonts');
         currentFontsList.innerHTML = ''; // Clear existing list
 
-        if (message.fonts.length === 0) {
-          currentFontsList.innerHTML = '<li class="no-selection">No fonts found</li>';
-        } else {
+        if (message.noSelection === true) {
+          currentFontsList.innerHTML = '<li class="no-selection">No selection. Select text layers to see their fonts.</li>';
+        } else if (message.fonts && message.fonts.length > 0) {
           // Create a Set to store unique font families and filter out undefined/empty values
           const uniqueFamilies = new Set(
             message.fonts.filter(font => font && font.trim() !== '')
@@ -623,7 +640,7 @@
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.value = font;
-            checkbox.id = `font-${font}`;
+            checkbox.id = `font-${font}`; // Ensure IDs are unique if fonts can have special chars
             checkbox.checked = true;
             
             const label = document.createElement('label');
@@ -634,10 +651,10 @@
             li.appendChild(label);
             currentFontsList.appendChild(li);
           });
+        } else {
+          // This case means there's a selection (noSelection is not true), but no fonts were found in it.
+          currentFontsList.innerHTML = '<li class="no-selection">No fonts found in selection.</li>';
         }
-
-        // Re-enable UI
-        document.body.classList.remove('loading');
       }
     }
   </script>

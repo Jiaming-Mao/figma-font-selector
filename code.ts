@@ -20,112 +20,88 @@ figma.showUI(__html__, { width: 300, height: 450 });
 // Load fonts when the plugin starts
 figma.loadFontAsync({ family: "Inter", style: "Regular" });
 
-// Function to get unique font families from selection or page
-function getSelectionFonts(): string[] {
+// Function to get unique font families from selection or page, asynchronously and in chunks
+async function getSelectionFontsAsync(): Promise<string[]> {
   const fonts = new Set<string>();
-  
-  // Function to recursively process nodes
-  function processNode(node: SceneNode) {
-    if (node.type === 'TEXT') {
-      try {
-        // Get all font names used in the text layer
-        const fontNames = node.getRangeAllFontNames(0, node.characters.length);
-        
-        // Handle case where there are mixed fonts
-        fontNames.forEach(fontName => {
-          // Check if we need to process mixed fonts
-          if (!fontName || typeof fontName !== 'object' || !('family' in fontName)) {
-            // When fonts are mixed, we need to check each character
+  const nodes: SceneNode[] = [...figma.currentPage.selection];
+  let index = 0;
+
+  return new Promise((resolve) => {
+    function processNextBatch() {
+      const batchSize = 5; // Tune for performance vs. responsiveness
+      for (let i = 0; i < batchSize && index < nodes.length; i++, index++) {
+        processNode(nodes[index]);
+      }
+      if (index < nodes.length) {
+        setTimeout(processNextBatch, 0); // Yield to event loop
+      } else {
+        resolve(Array.from(fonts));
+      }
+    }
+
+    function processNode(node: SceneNode) {
+      if (node.type === 'TEXT') {
+        try {
+          if (node.fontName !== figma.mixed && typeof node.fontName === 'object') {
+            fonts.add(node.fontName.family);
+          } else {
+            // Only check per-character if mixed
             for (let i = 0; i < node.characters.length; i++) {
               try {
                 const charFontName = node.getRangeFontName(i, i + 1);
-                if (charFontName && 
-                    typeof charFontName === 'object' && 
-                    'family' in charFontName) {
-                  const family = charFontName.family;
-                  if (family && typeof family === 'string' && family.trim() !== '') {
-                    fonts.add(family);
-                  }
+                if (charFontName && typeof charFontName === 'object') {
+                  fonts.add(charFontName.family);
                 }
-              } catch (charError) {
-                // Silently handle character processing errors
-              }
-            }
-          } else if (fontName && typeof fontName === 'object' && 'family' in fontName) {
-            // Handle normal case where font is consistent
-            const family = fontName.family;
-            if (family && typeof family === 'string' && family.trim() !== '') {
-              fonts.add(family);
+              } catch {}
             }
           }
-        });
-        
-        // Fallback: if no fonts were found, try getting the default font name
-        if (fonts.size === 0) {
-          const defaultFontName = node.fontName;
-          if (defaultFontName !== figma.mixed && 
-              typeof defaultFontName === 'object' && 
-              defaultFontName && 
-              'family' in defaultFontName) {
-            const family = defaultFontName.family;
-            if (family && typeof family === 'string' && family.trim() !== '') {
-              fonts.add(family);
-            }
-          }
+        } catch {}
+      } else if ('children' in node) {
+        for (const child of node.children) {
+          nodes.push(child); // Add children to the end of the queue
         }
-        
-      } catch (error) {
-        // Fallback to the basic fontName property
-        try {
-          const fallbackFontName = node.fontName;
-          if (fallbackFontName !== figma.mixed && 
-              typeof fallbackFontName === 'object' && 
-              fallbackFontName && 
-              'family' in fallbackFontName) {
-            const family = fallbackFontName.family;
-            if (family && typeof family === 'string' && family.trim() !== '') {
-              fonts.add(family);
-            }
-          }
-        } catch (fallbackError) {
-          // Silently handle fallback errors
-        }
-      }
-    } else if ('children' in node) {
-      // If the node has children, process each child
-      for (const child of node.children) {
-        processNode(child);
       }
     }
-  }
-  
-  // If nothing is selected, process all nodes on the current page
-  if (figma.currentPage.selection.length === 0) {
-    figma.currentPage.children.forEach(node => {
-      processNode(node);
-    });
-  } else {
-    // Process each selected node
-    figma.currentPage.selection.forEach(node => {
-      processNode(node);
-    });
-  }
-  
-  return Array.from(fonts);
+
+    processNextBatch();
+  });
 }
 
 // Send initial selection fonts
-figma.ui.postMessage({
-  type: 'selection-fonts',
-  fonts: getSelectionFonts()
-});
+// Inform the UI if nothing is selected initially.
+(async () => {
+  if (figma.currentPage.selection.length === 0) {
+    figma.ui.postMessage({
+      type: 'selection-fonts',
+      fonts: [],
+      noSelection: true
+    });
+  } else {
+    figma.ui.postMessage({ type: 'selection-fonts-loading' });
+    const fonts = await getSelectionFontsAsync();
+    figma.ui.postMessage({
+      type: 'selection-fonts',
+      fonts
+    });
+  }
+})();
 
 // Listen for selection changes
-figma.on('selectionchange', () => {
-  figma.ui.postMessage({
-    type: 'selection-fonts',
-    fonts: getSelectionFonts()
-  });
+figma.on('selectionchange', async () => {
+  if (figma.currentPage.selection.length === 0) {
+    figma.ui.postMessage({
+      type: 'selection-fonts',
+      fonts: [],
+      noSelection: true
+    });
+  } else {
+    figma.ui.postMessage({ type: 'selection-fonts-loading' });
+    const fonts = await getSelectionFontsAsync();
+    figma.ui.postMessage({
+      type: 'selection-fonts',
+      fonts
+    });
+  }
 });
 
 // Calls to "parent.postMessage" from within the HTML page will trigger this
@@ -145,9 +121,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
   
   if (msg.type === 'get-text-styles') {
     // Get local text styles
-    console.log('Getting local text styles...');
     const localTextStyles = await figma.getLocalTextStylesAsync();
-    console.log('Found local text styles:', localTextStyles.length, localTextStyles);
     
     // Extract properties manually since Figma objects don't serialize completely
     const serializedStyles = localTextStyles.map(style => ({
@@ -162,8 +136,6 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       textDecoration: style.textDecoration
     }));
     
-    console.log('Serialized styles:', serializedStyles);
-    
     // Send text styles to UI
     figma.ui.postMessage({
       type: 'text-styles-loaded',
@@ -172,10 +144,20 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
   }
   
   if (msg.type === 'get-selection-fonts') {
-    figma.ui.postMessage({
-      type: 'selection-fonts',
-      fonts: getSelectionFonts()
-    });
+    if (figma.currentPage.selection.length === 0) {
+      figma.ui.postMessage({
+        type: 'selection-fonts',
+        fonts: [],
+        noSelection: true
+      });
+    } else {
+      figma.ui.postMessage({ type: 'selection-fonts-loading' });
+      const fonts = await getSelectionFontsAsync();
+      figma.ui.postMessage({
+        type: 'selection-fonts',
+        fonts
+      });
+    }
   }
   
   if (msg.type === 'apply-font' && msg.font) {
@@ -209,7 +191,6 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
             // Apply the text style to the entire text node
             await node.setTextStyleIdAsync(style.id);
           } catch (error) {
-            console.error('Error applying text style:', error);
             figma.notify('Error applying text style');
           }
         } else if ('children' in node) {
@@ -225,9 +206,11 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       }
       
       // Update the current fonts display after applying changes
+      figma.ui.postMessage({ type: 'selection-fonts-loading' });
+      const fonts = await getSelectionFontsAsync();
       figma.ui.postMessage({
         type: 'selection-fonts',
-        fonts: getSelectionFonts()
+        fonts
       });
       
       figma.notify('Text style applied successfully');
@@ -246,7 +229,6 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           try {
             // Get all styled text segments to understand the font structure
             const segments = node.getStyledTextSegments(['fontName']);
-            console.log('Text segments:', segments);
             
             // Collect all fonts that need to be loaded (both current and new)
             const fontsToLoad = new Set<string>();
@@ -260,27 +242,32 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
             // Process each segment
             for (const segment of segments) {
               const currentFontName = segment.fontName as FontName;
-              console.log('Processing segment:', segment.start, segment.end, currentFontName);
               
               // Add current font to fonts to load (in case it's not loaded)
               fontsToLoad.add(`${currentFontName.family}:${currentFontName.style}`);
               
               // Check if this font family should be replaced
               if (msg.targetFonts?.includes(currentFontName.family)) {
-                // Find the best matching new font
+                // Find the best matching new font (preserve style/weight if possible)
+                const normalizeStyle = (style: string) => style.replace(/\s+/g, '').toLowerCase();
                 let newFont = allFonts.find(f => 
                   f.fontName.family === msg.font && 
-                  f.fontName.style === currentFontName.style
+                  normalizeStyle(f.fontName.style) === normalizeStyle(currentFontName.style)
                 );
-                
-                // If the same style isn't available, try Regular
+                // If the same style isn't available, try to match by weight (e.g., Bold, Italic, etc.)
+                if (!newFont) {
+                  newFont = allFonts.find(f => 
+                    f.fontName.family === msg.font &&
+                    f.fontName.style.toLowerCase().includes(currentFontName.style.toLowerCase())
+                  );
+                }
+                // If still not found, try Regular
                 if (!newFont) {
                   newFont = allFonts.find(f => 
                     f.fontName.family === msg.font && 
                     f.fontName.style === "Regular"
                   );
                 }
-                
                 // If Regular isn't available, fall back to the first available style
                 if (!newFont) {
                   newFont = allFonts.find(f => f.fontName.family === msg.font);
@@ -296,64 +283,65 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
                     oldFont: currentFontName,
                     newFont: newFont.fontName
                   });
-                  
-                  console.log('Font mapping:', currentFontName, '->', newFont.fontName);
                 }
               }
             }
             
             // Load all required fonts
-            console.log('Loading fonts:', Array.from(fontsToLoad));
             const loadPromises = Array.from(fontsToLoad).map(fontKey => {
               const [family, style] = fontKey.split(':');
               return figma.loadFontAsync({ family, style }).catch(error => {
-                console.warn(`Failed to load font ${family} ${style}:`, error);
+                
               });
             });
             
             await Promise.all(loadPromises);
-            console.log('All fonts loaded');
             
             // Apply font changes
             for (const mapping of fontMappings) {
               if (mapping.newFont) {
                 try {
-                  console.log(`Applying font ${mapping.newFont.family} ${mapping.newFont.style} to range ${mapping.start}-${mapping.end}`);
                   node.setRangeFontName(mapping.start, mapping.end, mapping.newFont);
                 } catch (rangeError) {
-                  console.error('Error applying font to range:', rangeError);
+                  
                   // Try to load the font again and retry
                   try {
                     await figma.loadFontAsync(mapping.newFont);
                     node.setRangeFontName(mapping.start, mapping.end, mapping.newFont);
                   } catch (retryError) {
-                    console.error('Retry failed:', retryError);
+                    
                   }
                 }
               }
             }
             
           } catch (error) {
-            console.error('Error processing text node:', error);
+            
             
             // Fallback to the simple method for nodes with uniform fonts
             try {
               const currentFontName = node.fontName as FontName;
               if (currentFontName && typeof currentFontName === 'object' && 'family' in currentFontName && msg.targetFonts?.includes(currentFontName.family)) {
-                // Find the best matching new font
+                // Find the best matching new font (preserve style/weight if possible)
+                const normalizeStyle = (style: string) => style.replace(/\s+/g, '').toLowerCase();
                 let newFont = allFonts.find(f => 
                   f.fontName.family === msg.font && 
-                  f.fontName.style === currentFontName.style
+                  normalizeStyle(f.fontName.style) === normalizeStyle(currentFontName.style)
                 );
-                
-                // If the same style isn't available, try Regular
+                // If the same style isn't available, try to match by weight (e.g., Bold, Italic, etc.)
+                if (!newFont) {
+                  newFont = allFonts.find(f => 
+                    f.fontName.family === msg.font &&
+                    f.fontName.style.toLowerCase().includes(currentFontName.style.toLowerCase())
+                  );
+                }
+                // If still not found, try Regular
                 if (!newFont) {
                   newFont = allFonts.find(f => 
                     f.fontName.family === msg.font && 
                     f.fontName.style === "Regular"
                   );
                 }
-                
                 // If Regular isn't available, fall back to the first available style
                 if (!newFont) {
                   newFont = allFonts.find(f => f.fontName.family === msg.font);
@@ -365,7 +353,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
                 }
               }
             } catch (fallbackError) {
-              console.error('Fallback method failed:', fallbackError);
+              
               let message = 'Unknown error';
               if (typeof fallbackError === 'object' && fallbackError && 'message' in fallbackError) {
                 message = (fallbackError as { message: string }).message;
@@ -387,9 +375,11 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       }
       
       // Update the current fonts display after applying changes
+      figma.ui.postMessage({ type: 'selection-fonts-loading' });
+      const fonts = await getSelectionFontsAsync();
       figma.ui.postMessage({
         type: 'selection-fonts',
-        fonts: getSelectionFonts()
+        fonts
       });
       
       figma.notify('Font applied successfully');
