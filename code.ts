@@ -13,7 +13,7 @@ interface PluginMessage {
 }
 
 // This shows the HTML page in "ui.html".
-figma.showUI(__html__, { width: 300, height: 300 });
+figma.showUI(__html__, { width: 300, height: 450 });
 
 // Load fonts when the plugin starts
 figma.loadFontAsync({ family: "Inter", style: "Regular" });
@@ -305,6 +305,12 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     for (const node of selection) {
       await processNode(node);
     }
+    
+    // Update the current fonts display after applying changes
+    figma.ui.postMessage({
+      type: 'selection-fonts',
+      fonts: getSelectionFonts()
+    });
     
     figma.notify('Font applied successfully');
   }

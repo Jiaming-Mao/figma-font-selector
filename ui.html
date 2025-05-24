@@ -4,15 +4,120 @@
   <style>
     body {
       font-family: Inter, sans-serif;
-      padding: 20px;
+      padding: 12px 16px 16px 16px;
+      margin: 0;
+      color: #333333;
+      background: #FFFFFF;
     }
+
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0 0 16px 0;
+      color: #333333;
+    }
+
+    .current-fonts {
+      margin: 16px 0;
+      padding: 12px;
+      background: #F5F5F5;
+      border-radius: 6px;
+    }
+
+    .current-fonts h3 {
+      margin: 0 0 8px 0;
+      font-size: 12px;
+      font-weight: 500;
+      color: #333333;
+    }
+
+    .font-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .font-list li {
+      font-size: 12px;
+      color: #333333;
+      margin: 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+    }
+
+    .font-list input[type="checkbox"] {
+      margin: 0 8px 0 0;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #C1C6CE;
+      border-radius: 2px;
+      background: #fff;
+      appearance: none;
+      -webkit-appearance: none;
+      outline: none;
+      cursor: pointer;
+      display: inline-block;
+      vertical-align: middle;
+      position: relative;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .font-list input[type="checkbox"]:checked {
+      background: #18A0FB;
+      border-color: #18A0FB;
+    }
+
+    .font-list input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 4px;
+      top: 1.5px;
+      width: 4px;
+      height: 8px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      border-radius: 1px;
+      transform: rotate(45deg);
+      pointer-events: none;
+      box-sizing: border-box;
+    }
+
+    .font-list input[type="checkbox"]:focus {
+      border-color: #18A0FB;
+      box-shadow: 0 0 0 2px rgba(24,160,251,0.15);
+    }
+
     select {
       width: 100%;
-      padding: 8px;
-      margin: 8px 0;
-      border-radius: 4px;
-      border: 1px solid #e5e5e5;
+      padding: 8px 12px;
+      margin: 8px 0 16px 0;
+      border-radius: 6px;
+      border: 1px solid #E5E5E5;
+      background: #FFFFFF;
+      font-size: 12px;
+      color: #333333;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-size: 16px;
+      padding-right: 32px;
     }
+
+    select:hover {
+      border-color: #18A0FB;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #18A0FB;
+      box-shadow: 0 0 0 2px rgba(24, 160, 251, 0.1);
+    }
+
     button {
       background: #18A0FB;
       color: white;
@@ -20,85 +125,246 @@
       padding: 8px 16px;
       border-radius: 6px;
       cursor: pointer;
-      margin-right: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      width: 100%;
+      transition: background-color 0.2s ease;
     }
+
     button:hover {
       background: #0D8DE3;
     }
-    .current-fonts {
-      margin: 16px 0;
-      padding: 12px;
-      background: #F5F5F5;
-      border-radius: 6px;
+
+    button:active {
+      background: #0B7BC2;
     }
-    .current-fonts h3 {
-      margin: 0 0 8px 0;
+
+    button:disabled {
+      background: #E5E5E5;
+      color: #999999;
+      cursor: not-allowed;
+    }
+
+    .no-selection {
+      color: #999999;
+      font-style: italic;
       font-size: 12px;
-      color: #333;
+      padding: 8px 0;
     }
-    .font-list {
+
+    /* Loading state styles */
+    .loading {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    /* Error state styles */
+    .error {
+      color: #F24822;
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .error.visible {
+      display: block;
+    }
+
+    /* Responsive panel styles */
+    html, body {
+      max-width: 340px;
+      min-width: 240px;
+      width: 100vw;
+      box-sizing: border-box;
+      height: auto;
+      min-height: 100vh;
+      overflow-y: auto;
+    }
+
+    .dropdown-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #333333;
+      margin-bottom: 4px;
+      margin-top: 8px;
+    }
+
+    .autocomplete-container {
+      position: relative;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .autocomplete-input {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #E5E5E5;
+      background: #FFFFFF;
+      font-size: 12px;
+      color: #333333;
+      box-sizing: border-box;
+      outline: none;
+    }
+    .autocomplete-input:focus {
+      border-color: #18A0FB;
+      box-shadow: 0 0 0 2px rgba(24, 160, 251, 0.1);
+    }
+    .autocomplete-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #E5E5E5;
+      border-radius: 0 0 6px 6px;
+      max-height: 180px;
+      overflow-y: auto;
+      z-index: 10;
       margin: 0;
       padding: 0;
       list-style: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
     }
-    .font-list li {
+    .autocomplete-list[hidden] {
+      display: none;
+    }
+    .autocomplete-list li {
+      padding: 8px 12px;
       font-size: 12px;
-      color: #666;
-      margin: 4px 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      color: #333333;
+      cursor: pointer;
+      transition: background 0.15s;
     }
-    .font-list input[type="checkbox"] {
-      margin: 0;
+    .autocomplete-list li.active,
+    .autocomplete-list li:hover {
+      background: #F3F8FC;
+      color: #18A0FB;
     }
-    .no-selection {
-      color: #999;
-      font-style: italic;
+
+    .current-fonts-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: #333333;
+      margin: 0 0 4px 0;
     }
   </style>
 </head>
 <body>
-  <h2>Font Selector</h2>
-  
+  <h3 class="current-fonts-title">Current Fonts</h3>
   <div class="current-fonts">
-    <h3>Current Fonts</h3>
     <ul id="currentFonts" class="font-list">
       <li class="no-selection">Loading fonts...</li>
     </ul>
   </div>
 
-  <select id="fontSelect">
-    <option value="">Loading fonts...</option>
-  </select>
+  <label for="fontAutocomplete" class="dropdown-label">Target Font</label>
+  <div class="autocomplete-container">
+    <input id="fontAutocomplete" type="text" placeholder="Search fonts..." autocomplete="off" class="autocomplete-input" />
+    <ul id="autocompleteList" class="autocomplete-list" tabindex="-1" hidden></ul>
+  </div>
+
   <button id="apply">Apply Font</button>
-  <button id="cancel">Cancel</button>
+  <div id="error" class="error">An error occurred while applying the font.</div>
 
   <script>
     // Request available fonts from the plugin
     parent.postMessage({ pluginMessage: { type: 'get-fonts' } }, '*');
-
-    // Request current selection fonts
     parent.postMessage({ pluginMessage: { type: 'get-selection-fonts' } }, '*');
 
+    const applyButton = document.getElementById('apply');
+    const errorDiv = document.getElementById('error');
+    const fontAutocomplete = document.getElementById('fontAutocomplete');
+    const autocompleteList = document.getElementById('autocompleteList');
+    let allFontFamilies = [];
+    let selectedFont = '';
+
+    // Autocomplete logic
+    function showAutocompleteList(filtered) {
+      autocompleteList.innerHTML = '';
+      if (filtered.length === 0) {
+        autocompleteList.hidden = true;
+        return;
+      }
+      filtered.forEach((family, idx) => {
+        const li = document.createElement('li');
+        li.textContent = family;
+        li.tabIndex = 0;
+        li.onclick = () => {
+          fontAutocomplete.value = family;
+          selectedFont = family;
+          autocompleteList.hidden = true;
+        };
+        li.onmousedown = (e) => e.preventDefault(); // Prevent input blur
+        autocompleteList.appendChild(li);
+      });
+      autocompleteList.hidden = false;
+    }
+
+    fontAutocomplete.addEventListener('input', (e) => {
+      const value = fontAutocomplete.value.trim().toLowerCase();
+      const filtered = allFontFamilies.filter(f => f.toLowerCase().includes(value));
+      showAutocompleteList(filtered);
+      selectedFont = fontAutocomplete.value;
+    });
+
+    fontAutocomplete.addEventListener('focus', () => {
+      showAutocompleteList(allFontFamilies);
+    });
+
+    fontAutocomplete.addEventListener('blur', () => {
+      setTimeout(() => autocompleteList.hidden = true, 100);
+    });
+
+    fontAutocomplete.addEventListener('keydown', (e) => {
+      const items = Array.from(autocompleteList.children);
+      const active = autocompleteList.querySelector('li.active');
+      let idx = items.indexOf(active);
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (idx < items.length - 1) idx++;
+        else idx = 0;
+        items.forEach(li => li.classList.remove('active'));
+        if (items[idx]) items[idx].classList.add('active');
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (idx > 0) idx--;
+        else idx = items.length - 1;
+        items.forEach(li => li.classList.remove('active'));
+        if (items[idx]) items[idx].classList.add('active');
+      } else if (e.key === 'Enter') {
+        if (active) {
+          fontAutocomplete.value = active.textContent;
+          selectedFont = active.textContent;
+          autocompleteList.hidden = true;
+        }
+      }
+    });
+
     // Handle font selection
-    document.getElementById('apply').onclick = () => {
-      const fontSelect = document.getElementById('fontSelect');
-      const selectedFont = fontSelect.value;
+    applyButton.onclick = () => {
       const checkedFonts = Array.from(document.querySelectorAll('#currentFonts input[type="checkbox"]:checked'))
         .map(checkbox => checkbox.value);
-      
+      const fontToApply = selectedFont || fontAutocomplete.value;
+      if (!fontToApply || !allFontFamilies.includes(fontToApply)) {
+        errorDiv.textContent = 'Please select a font to apply.';
+        errorDiv.classList.add('visible');
+        return;
+      }
+      if (checkedFonts.length === 0) {
+        errorDiv.textContent = 'Please select at least one font to replace.';
+        errorDiv.classList.add('visible');
+        return;
+      }
+      errorDiv.classList.remove('visible');
+      document.body.classList.add('loading');
       parent.postMessage({ 
         pluginMessage: { 
           type: 'apply-font', 
-          font: selectedFont,
+          font: fontToApply,
           targetFonts: checkedFonts
         } 
       }, '*');
-    }
-
-    document.getElementById('cancel').onclick = () => {
-      parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*')
     }
 
     // Listen for messages from the plugin
@@ -106,9 +372,6 @@
       const message = event.data.pluginMessage;
       
       if (message.type === 'fonts-loaded') {
-        const fontSelect = document.getElementById('fontSelect');
-        fontSelect.innerHTML = ''; // Clear loading message
-        
         // Create a Set to store unique font families
         const uniqueFamilies = new Set();
         message.fonts.forEach(font => {
@@ -119,14 +382,9 @@
           ) return; // Skip hidden/system/corrupted fonts
           uniqueFamilies.add(font.fontName.family);
         });
-
-        // Add unique families to dropdown
-        Array.from(uniqueFamilies).sort().forEach(family => {
-          const option = document.createElement('option');
-          option.value = family;
-          option.text = family;
-          fontSelect.appendChild(option);
-        });
+        allFontFamilies = Array.from(uniqueFamilies).sort();
+        // Re-enable UI
+        document.body.classList.remove('loading');
       }
 
       if (message.type === 'selection-fonts') {
@@ -159,6 +417,9 @@
             currentFontsList.appendChild(li);
           });
         }
+
+        // Re-enable UI
+        document.body.classList.remove('loading');
       }
     }
   </script>
