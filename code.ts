@@ -63,7 +63,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
               f.fontName.family === msg.font && 
               f.fontName.style === "Regular"
             );
-          }
+    }
           
           // If Regular isn't available, fall back to the first available style
           if (!newFont) {
@@ -73,7 +73,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           if (newFont) {
             await figma.loadFontAsync(newFont.fontName);
             node.fontName = newFont.fontName;
-          }
+  }
         } catch (error) {
           let message = 'Unknown error';
           if (typeof error === 'object' && error && 'message' in error) {
@@ -88,6 +88,6 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
   }
 
   if (msg.type === 'cancel') {
-    figma.closePlugin();
+  figma.closePlugin();
   }
 };

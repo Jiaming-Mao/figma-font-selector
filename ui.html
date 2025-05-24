@@ -25,10 +25,49 @@
     button:hover {
       background: #0D8DE3;
     }
+    .current-fonts {
+      margin: 16px 0;
+      padding: 12px;
+      background: #F5F5F5;
+      border-radius: 6px;
+    }
+    .current-fonts h3 {
+      margin: 0 0 8px 0;
+      font-size: 12px;
+      color: #333;
+    }
+    .font-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .font-list li {
+      font-size: 12px;
+      color: #666;
+      margin: 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .font-list input[type="checkbox"] {
+      margin: 0;
+    }
+    .no-selection {
+      color: #999;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
   <h2>Font Selector</h2>
+  
+  <div class="current-fonts">
+    <h3>Current Fonts</h3>
+    <ul id="currentFonts" class="font-list">
+      <li class="no-selection">Loading fonts...</li>
+    </ul>
+  </div>
+
   <select id="fontSelect">
     <option value="">Loading fonts...</option>
   </select>
@@ -39,14 +78,21 @@
     // Request available fonts from the plugin
     parent.postMessage({ pluginMessage: { type: 'get-fonts' } }, '*');
 
+    // Request current selection fonts
+    parent.postMessage({ pluginMessage: { type: 'get-selection-fonts' } }, '*');
+
     // Handle font selection
     document.getElementById('apply').onclick = () => {
       const fontSelect = document.getElementById('fontSelect');
       const selectedFont = fontSelect.value;
+      const checkedFonts = Array.from(document.querySelectorAll('#currentFonts input[type="checkbox"]:checked'))
+        .map(checkbox => checkbox.value);
+      
       parent.postMessage({ 
         pluginMessage: { 
           type: 'apply-font', 
-          font: selectedFont
+          font: selectedFont,
+          targetFonts: checkedFonts
         } 
       }, '*');
     }
@@ -81,6 +127,38 @@
           option.text = family;
           fontSelect.appendChild(option);
         });
+      }
+
+      if (message.type === 'selection-fonts') {
+        const currentFontsList = document.getElementById('currentFonts');
+        currentFontsList.innerHTML = ''; // Clear existing list
+
+        if (message.fonts.length === 0) {
+          currentFontsList.innerHTML = '<li class="no-selection">No fonts found</li>';
+        } else {
+          // Create a Set to store unique font families and filter out undefined/empty values
+          const uniqueFamilies = new Set(
+            message.fonts.filter(font => font && font.trim() !== '')
+          );
+          
+          Array.from(uniqueFamilies).sort().forEach(font => {
+            const li = document.createElement('li');
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = font;
+            checkbox.id = `font-${font}`;
+            checkbox.checked = true;
+            
+            const label = document.createElement('label');
+            label.htmlFor = `font-${font}`;
+            label.textContent = font;
+            
+            li.appendChild(checkbox);
+            li.appendChild(label);
+            currentFontsList.appendChild(li);
+          });
+        }
       }
     }
   </script>
