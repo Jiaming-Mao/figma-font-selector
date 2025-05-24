@@ -4,7 +4,7 @@
   <style>
     body {
       font-family: Inter, sans-serif;
-      padding: 12px 16px 16px 16px;
+      padding: 20px 16px 16px 16px;
       margin: 0;
       color: #333333;
       background: #FFFFFF;
@@ -18,8 +18,8 @@
     }
 
     .current-fonts {
-      margin: 16px 0;
-      padding: 12px;
+      margin: 8px 0 20px 0;
+      padding: 8px 12px 4px 12px;
       background: #F5F5F5;
       border-radius: 6px;
     }
@@ -40,19 +40,19 @@
     .font-list li {
       font-size: 12px;
       color: #333333;
-      margin: 4px 0;
+      margin: 0 0 4px 0;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 4px;
       padding: 4px 0;
     }
 
     .font-list input[type="checkbox"] {
-      margin: 0 8px 0 0;
+      margin: 0 2px 0 0;
       width: 16px;
       height: 16px;
       border: 2px solid #C1C6CE;
-      border-radius: 2px;
+      border-radius: 4px;
       background: #fff;
       appearance: none;
       -webkit-appearance: none;
@@ -186,14 +186,14 @@
       font-size: 12px;
       font-weight: 500;
       color: #333333;
-      margin-bottom: 4px;
+      margin-bottom: 8px;
       margin-top: 8px;
     }
 
     .autocomplete-container {
       position: relative;
       width: 100%;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
     .autocomplete-input {
       width: 100%;
@@ -236,17 +236,13 @@
       cursor: pointer;
       transition: background 0.15s;
     }
-    .autocomplete-list li.active,
-    .autocomplete-list li:hover {
-      background: #F3F8FC;
-      color: #18A0FB;
-    }
+    /* Remove general li hover - use specific classes instead */
 
     .current-fonts-title {
       font-size: 12px;
       font-weight: 500;
       color: #333333;
-      margin: 0 0 4px 0;
+      margin: 0 0 0px 0;
     }
 
     /* Text style specific styles */
@@ -256,7 +252,7 @@
     
     .autocomplete-list .style-name {
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 400;
       color: #333333;
       margin-bottom: 2px;
     }
@@ -268,8 +264,9 @@
     }
     
     .autocomplete-list .font-family-item {
-      padding: 8px 12px;
+      padding: 10px 12px;
       font-size: 12px;
+      font-weight: 400;
       color: #333333;
     }
     
@@ -301,13 +298,9 @@
     .autocomplete-list .font-family-item.active,
     .autocomplete-list .font-family-item:hover {
       background: #F3F8FC;
-      color: #18A0FB;
     }
     
-    .autocomplete-list .section-title:hover,
-    .autocomplete-list .divider:hover {
-      background: inherit;
-    }
+    /* Section titles and dividers have no hover state */
   </style>
 </head>
 <body>
