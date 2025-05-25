@@ -1,4 +1,4 @@
-# Figma Font Selector Plugin
+# Figma Plugin - Font Replacer
 
 A Figma plugin that provides a powerful interface to select and apply fonts to text layers while preserving font styles and handling mixed font cases.
 
