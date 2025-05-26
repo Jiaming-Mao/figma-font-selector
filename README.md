@@ -12,6 +12,12 @@ A Figma plugin that provides a powerful interface to select and apply fonts to t
 - Robust error handling and font loading
 - Clean, modern UI that matches Figma's design system
 
+## Demo Video
+
+[![Font Replacer Demo](https://img.youtube.com/vi/INnBUjin_2k/maxresdefault.jpg)](https://youtu.be/INnBUjin_2k)
+
+Watch the demo video to see Font Replacer in action!
+
 ## Key Capabilities
 
 - **Mixed Font Support**: Handles text layers with multiple font families (2+ fonts)
