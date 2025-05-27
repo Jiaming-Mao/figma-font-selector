@@ -20,11 +20,31 @@ figma.showUI(__html__, { width: 300, height: 450 });
 // Load fonts when the plugin starts
 figma.loadFontAsync({ family: "Inter", style: "Regular" });
 
+// Cache for storing fonts of recent selections
+interface SelectionCache {
+  nodeIds: string[];
+  fonts: string[];
+}
+
+const selectionCache: SelectionCache[] = [];
+const MAX_CACHE_SIZE = 10;
+
 // Function to get unique font families from selection or page, asynchronously and in chunks
 async function getSelectionFontsAsync(): Promise<string[]> {
   const fonts = new Set<string>();
   const nodes: SceneNode[] = [...figma.currentPage.selection];
   let index = 0;
+
+  // Check cache first
+  const currentSelectionIds = nodes.map(node => node.id).sort();
+  const cachedResult = selectionCache.find(cache => 
+    cache.nodeIds.length === currentSelectionIds.length && 
+    cache.nodeIds.every((id, index) => id === currentSelectionIds[index])
+  );
+
+  if (cachedResult) {
+    return cachedResult.fonts;
+  }
 
   return new Promise((resolve) => {
     function processNextBatch() {
@@ -35,11 +55,29 @@ async function getSelectionFontsAsync(): Promise<string[]> {
       if (index < nodes.length) {
         setTimeout(processNextBatch, 0); // Yield to event loop
       } else {
-        resolve(Array.from(fonts));
+        const result = Array.from(fonts);
+        
+        // Update cache
+        selectionCache.unshift({
+          nodeIds: currentSelectionIds,
+          fonts: result
+        });
+        
+        // Keep cache size limited
+        if (selectionCache.length > MAX_CACHE_SIZE) {
+          selectionCache.pop();
+        }
+        
+        resolve(result);
       }
     }
 
     function processNode(node: SceneNode) {
+      // Skip hidden layers
+      if (!node.visible) {
+        return;
+      }
+      
       if (node.type === 'TEXT') {
         try {
           if (node.fontName !== figma.mixed && typeof node.fontName === 'object') {
@@ -95,12 +133,26 @@ figma.on('selectionchange', async () => {
       noSelection: true
     });
   } else {
-    figma.ui.postMessage({ type: 'selection-fonts-loading' });
-    const fonts = await getSelectionFontsAsync();
-    figma.ui.postMessage({
-      type: 'selection-fonts',
-      fonts
-    });
+    // Check cache first
+    const currentSelectionIds = figma.currentPage.selection.map(node => node.id).sort();
+    const cachedResult = selectionCache.find(cache => 
+      cache.nodeIds.length === currentSelectionIds.length && 
+      cache.nodeIds.every((id, index) => id === currentSelectionIds[index])
+    );
+
+    if (cachedResult) {
+      figma.ui.postMessage({
+        type: 'selection-fonts',
+        fonts: cachedResult.fonts
+      });
+    } else {
+      figma.ui.postMessage({ type: 'selection-fonts-loading' });
+      const fonts = await getSelectionFontsAsync();
+      figma.ui.postMessage({
+        type: 'selection-fonts',
+        fonts
+      });
+    }
   }
 });
 
