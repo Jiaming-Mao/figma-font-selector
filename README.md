@@ -1,16 +1,19 @@
-# Figma Plugin - Font Replacer
+# Font Replacer
 
-A Figma plugin that provides a powerful interface to select and apply fonts to text layers while preserving font styles and handling mixed font cases.
+_Effortlessly swap and manage fonts in your Figma designs_
 
-## Features
+Font Replacer is the ultimate tool for managing and replacing fonts in your Figma projects. Instantly view all fonts used in your selection, selectively replace specific font families, and preserve font weights and styles when switching to new fonts. Whether you're cleaning up inconsistent typography, updating your brand, or exploring new typefaces, Font Replacer makes the process fast, intuitive, and reliable.
 
-- Shows a dropdown of all available fonts in your Figma document
-- Displays current fonts used in selected text layers
-- Allows selective font replacement by choosing which fonts to replace
-- Preserves font styles when switching fonts (e.g., Bold stays Bold if available)
-- Handles complex text layers with multiple font families
-- Robust error handling and font loading
-- Clean, modern UI that matches Figma's design system
+- See all fonts in your selection at a glance  
+- Replace one or multiple font families with a single click  
+- Maintains font weights/styles (e.g., Bold, Italic) when switching families  
+- Handles mixed-font text layers and nested groups  
+- Smart fallbacks ensure your text always looks great  
+- Clean, modern UI with loading indicators for large selections
+
+## Demo
+
+[Watch the demo on YouTube](https://youtu.be/INnBUjin_2k)
 
 ## Key Capabilities
 
